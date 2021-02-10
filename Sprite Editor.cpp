@@ -54,7 +54,7 @@ int main()
         screen_buffer[i] = L' ';
     }
 
-    unsigned int mode = 0;// 0 - save; 1 - edit
+    unsigned int mode = 0;// 0 - new; 1 - edit
     bool selected = false;
     
     WriteConsoleOutputCharacter(hConsole, L"Create New", 10, { 0,0 }, &OUTP);
@@ -62,15 +62,16 @@ int main()
 
     while (!selected) 
     {
-        if (GetAsyncKeyState(VK_UP) & 0x01)
+        if (GetAsyncKeyState(VK_UP) & 0x0001)
         {
             mode--;
         }
 
-        if (GetAsyncKeyState(VK_DOWN) & 0x01)
+        if (GetAsyncKeyState(VK_DOWN) & 0x0001)
         {
             mode++;
         }
+        
         mode %= 2;
         if (mode == 0) 
         {
@@ -87,13 +88,29 @@ int main()
         {
             colors[i] = 0x07;
         }
+        if (GetAsyncKeyState(VK_RETURN) & 0x0001)
+        {
+            selected = true;
+        }
 
     }
-
-
-
-
-    cout << "Hello World!\n";
+    
+    wchar_t input[11];
+    CONSOLE_READCONSOLE_CONTROL test;
+    test.nLength = sizeof(CONSOLE_READCONSOLE_CONTROL);
+    test.nInitialChars = 0;
+    test.dwCtrlWakeupMask = (1 << L'\n');
+    test.dwControlKeyState = NULL;
+    WriteConsoleOutputCharacter(hConsole, screen_buffer, nScreenHeight*nScreenWidth, { 0,0 }, &OUTP);
+    while(mode == 0)
+    {
+        ReadConsole(hConsole, input, MAX_PATH * sizeof(TCHAR), &OUTP, &test);
+        if (GetAsyncKeyState(VK_RETURN) & 0x0001)
+        {
+            mode = 1;
+        }
+    }
+    system("pause");
 }
 
 
