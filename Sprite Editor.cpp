@@ -6,8 +6,10 @@
 #include <conio.h>
 using namespace std;
 
-int const nScreenWidth = 120;				// Console Screen Size X (columns)
-int const nScreenHeight = 30;				// Console Screen Size Y (rows)
+int nScreenWidth = 120;				// Console Screen Size X (columns)
+int nScreenHeight = 30;				// Console Screen Size Y (rows)
+int const nSpriteWidth = 30;
+int const nSpriteHeight = 30;
 
 class Sprite
 {
@@ -19,7 +21,7 @@ public:
         this->Height = Height;
         this->Width = Width;
 
-        delete pixels;
+        delete[] pixels;
         pixels = new _CHAR_INFO[Width * Height];
 
         for (int i = 0; i < Width * Height; i++) 
@@ -46,7 +48,7 @@ int main()
     SetConsoleWindowInfo(hConsole, true, &rectWindow);
 
     unsigned short* colors = new unsigned short[nScreenWidth * nScreenHeight];
-    wchar_t* screen_buffer = new wchar_t[(int)nScreenWidth * (int)nScreenHeight];
+    wchar_t* screen_buffer = new wchar_t[nScreenWidth * nScreenHeight];
 
     for (int i = 0; i < nScreenWidth * nScreenHeight; i++)
     {
@@ -56,6 +58,7 @@ int main()
 
     unsigned int mode = 0;// 0 - new; 1 - edit
     bool selected = false;
+    bool ended = false;
     
     WriteConsoleOutputCharacter(hConsole, L"Create New", 10, { 0,0 }, &OUTP);
     WriteConsoleOutputCharacter(hConsole, L"Edit", 4, { 0,1 }, &OUTP);
@@ -94,23 +97,101 @@ int main()
         }
 
     }
-    
-    wchar_t input[11];
-    CONSOLE_READCONSOLE_CONTROL test;
-    test.nLength = sizeof(CONSOLE_READCONSOLE_CONTROL);
-    test.nInitialChars = 0;
-    test.dwCtrlWakeupMask = (1 << L'\n');
-    test.dwControlKeyState = NULL;
+    WriteConsoleOutputAttribute(hConsole, colors, nScreenWidth * nScreenHeight, { 0,0 }, &OUTP);
     WriteConsoleOutputCharacter(hConsole, screen_buffer, nScreenHeight*nScreenWidth, { 0,0 }, &OUTP);
-    while(mode == 0)
+
+    nScreenWidth = nSpriteWidth < 120 ? 120 : nSpriteWidth;
+    nScreenHeight = nSpriteHeight < 120 ? 120 : nSpriteHeight;
+    
+    delete[] screen_buffer;
+    delete[] colors;
+
+    screen_buffer = new wchar_t[nScreenWidth * nScreenHeight];
+    colors = new unsigned short[nScreenWidth * nScreenHeight];
+
+    for (int i = 0; i < nScreenWidth * nScreenHeight; i++)
     {
-        ReadConsole(hConsole, input, MAX_PATH * sizeof(TCHAR), &OUTP, &test);
-        if (GetAsyncKeyState(VK_RETURN) & 0x0001)
-        {
-            mode = 1;
-        }
+        colors[i] = 0x07;
+        screen_buffer[i] = L' ';
     }
-    system("pause");
+
+    SetConsoleScreenBufferSize(hConsole, { (short)nScreenWidth,(short)nScreenHeight });
+
+    font.nFont = 0;
+    font.dwFontSize.X = 10;
+    font.dwFontSize.Y = 10;
+    font.FontFamily = FF_DONTCARE;
+    font.FontWeight = FW_NORMAL;
+    SetCurrentConsoleFontEx(hConsole, false, &font);
+
+    rectWindow = { 0,0,(short)nScreenWidth - 1,(short)nScreenHeight - 1 };
+    SetConsoleWindowInfo(hConsole, true, &rectWindow);
+
+    unsigned short selected_color_back = 0x00, selected_color_char = 0x00, selected_block = 0;
+
+    wchar_t blocks[4] = { L'█',L'▓',L'▒',L'░' };
+    while (!ended) 
+    {
+
+        if (GetAsyncKeyState(VK_SUBTRACT) & 0x0001)
+        {
+            selected_color_back += 0x10;
+        }
+
+        if (GetAsyncKeyState(VK_ADD) & 0x0001)
+        {
+            selected_color_back += 0x10;
+        }
+
+        if (GetAsyncKeyState(VK_UP) & 0x0001)
+        {
+            selected_color_char += 0x01;
+        }
+
+        if (GetAsyncKeyState(VK_DOWN) & 0x0001)
+        {
+            selected_color_char += 0x01;
+        }
+
+        if (GetAsyncKeyState(VK_RIGHT) & 0x0001)
+        {
+            selected_block++;
+        }
+
+        if (GetAsyncKeyState(VK_LEFT) & 0x0001)
+        {
+            selected_block++;
+        }
+
+        selected_color_back %= 0x100;
+        selected_color_char %= 0x10;
+        selected_block %= 4;
+
+        for (int i = 0; i < nScreenWidth * 6; i++)
+        {
+            colors[i] = 0xFA;
+        }
+        colors[2 * nScreenWidth + 10] = 0x0F | selected_color_back;
+        colors[3 * nScreenWidth + 10] = 0x0F | selected_color_back;
+        colors[2 * nScreenWidth + 11] = 0x0F | selected_color_back;
+        colors[3 * nScreenWidth + 11] = 0x0F | selected_color_back;
+
+        colors[2 * nScreenWidth + 14] = 0x00 | selected_color_char;
+        colors[3 * nScreenWidth + 14] = 0x00 | selected_color_char;
+        colors[2 * nScreenWidth + 15] = 0x00 | selected_color_char;
+        colors[3 * nScreenWidth + 15] = 0x00 | selected_color_char;
+
+        screen_buffer[2 * nScreenWidth + 14] = blocks[selected_block];
+        screen_buffer[3 * nScreenWidth + 14] = blocks[selected_block];
+        screen_buffer[2 * nScreenWidth + 15] = blocks[selected_block];
+        screen_buffer[3 * nScreenWidth + 15] = blocks[selected_block];
+
+
+
+
+        WriteConsoleOutputAttribute(hConsole, colors, nScreenWidth * nScreenHeight, { 0,0 }, &OUTP);
+        WriteConsoleOutputCharacter(hConsole, screen_buffer, nScreenHeight * nScreenWidth, { 0,0 }, &OUTP);
+    }
 }
 
 
