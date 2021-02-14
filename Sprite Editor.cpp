@@ -101,7 +101,7 @@ int main()
     WriteConsoleOutputCharacter(hConsole, screen_buffer, nScreenHeight*nScreenWidth, { 0,0 }, &OUTP);
 
     nScreenWidth = nSpriteWidth < 120 ? 120 : nSpriteWidth;
-    nScreenHeight = nSpriteHeight < 120 ? 120 : nSpriteHeight;
+    nScreenHeight = nSpriteHeight < 120 ? 120 : nSpriteHeight+6;
     
     delete[] screen_buffer;
     delete[] colors;
@@ -127,64 +127,90 @@ int main()
     rectWindow = { 0,0,(short)nScreenWidth - 1,(short)nScreenHeight - 1 };
     SetConsoleWindowInfo(hConsole, true, &rectWindow);
 
-    unsigned short selected_color_back = 0x00, selected_color_char = 0x00, selected_block = 0;
+    unsigned short selected_color_back = 0x00, selected_color_char = 0x00, selected_block = 0, selected_x = 0, selected_y = 0;
 
     wchar_t blocks[4] = { L'█',L'▓',L'▒',L'░' };
+
+    Sprite sprit(nSpriteHeight, nSpriteWidth);
+
     while (!ended) 
     {
 
-        if (GetAsyncKeyState(VK_SUBTRACT) & 0x0001)
+        if (GetAsyncKeyState(VK_NUMPAD8) & 0x0001)
         {
             selected_color_back += 0x10;
+        }
+
+        if (GetAsyncKeyState(VK_NUMPAD5) & 0x0001)
+        {
+            selected_color_back += 0x10;
+        }
+
+        if (GetAsyncKeyState(VK_NUMPAD9) & 0x0001)
+        {
+            selected_color_char += 0x01;
+        }
+
+        if (GetAsyncKeyState(VK_NUMPAD6) & 0x0001)
+        {
+            selected_color_char += 0x01;
+        }
+
+        if (GetAsyncKeyState(VK_SUBTRACT) & 0x0001)
+        {
+            selected_block++;
         }
 
         if (GetAsyncKeyState(VK_ADD) & 0x0001)
         {
-            selected_color_back += 0x10;
+            selected_block--;
         }
 
         if (GetAsyncKeyState(VK_UP) & 0x0001)
         {
-            selected_color_char += 0x01;
+            selected_y++;
         }
 
         if (GetAsyncKeyState(VK_DOWN) & 0x0001)
         {
-            selected_color_char += 0x01;
+            selected_y--;
         }
 
         if (GetAsyncKeyState(VK_RIGHT) & 0x0001)
         {
-            selected_block++;
+            selected_x++;
         }
 
         if (GetAsyncKeyState(VK_LEFT) & 0x0001)
         {
-            selected_block++;
+            selected_x--;
         }
+
 
         selected_color_back %= 0x100;
         selected_color_char %= 0x10;
         selected_block %= 4;
-
+        selected_y %= nSpriteHeight;
+        selected_x %= nSpriteWidth;
         for (int i = 0; i < nScreenWidth * 6; i++)
         {
             colors[i] = 0xFA;
         }
-        colors[2 * nScreenWidth + 10] = 0x0F | selected_color_back;
-        colors[3 * nScreenWidth + 10] = 0x0F | selected_color_back;
-        colors[2 * nScreenWidth + 11] = 0x0F | selected_color_back;
-        colors[3 * nScreenWidth + 11] = 0x0F | selected_color_back;
 
-        colors[2 * nScreenWidth + 14] = 0x00 | selected_color_char;
-        colors[3 * nScreenWidth + 14] = 0x00 | selected_color_char;
-        colors[2 * nScreenWidth + 15] = 0x00 | selected_color_char;
-        colors[3 * nScreenWidth + 15] = 0x00 | selected_color_char;
+        for (int y = 0; y < 6; y++)
+        {
+            int x;
+            for (x = 0; x < 6; x++)
+            {
+                colors[y * nScreenWidth + x] = 0x0F | selected_color_back;
+            }
+            for (x = 6; x < 12; x++)
+            {
+                colors[y * nScreenWidth + x] = 0x00 | selected_color_char;
+                screen_buffer[y * nScreenWidth + x] = blocks[selected_block];
+            }
+        }
 
-        screen_buffer[2 * nScreenWidth + 14] = blocks[selected_block];
-        screen_buffer[3 * nScreenWidth + 14] = blocks[selected_block];
-        screen_buffer[2 * nScreenWidth + 15] = blocks[selected_block];
-        screen_buffer[3 * nScreenWidth + 15] = blocks[selected_block];
 
 
 
@@ -192,6 +218,7 @@ int main()
         WriteConsoleOutputAttribute(hConsole, colors, nScreenWidth * nScreenHeight, { 0,0 }, &OUTP);
         WriteConsoleOutputCharacter(hConsole, screen_buffer, nScreenHeight * nScreenWidth, { 0,0 }, &OUTP);
     }
+    return 0;
 }
 
 
